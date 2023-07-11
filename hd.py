@@ -1,12 +1,35 @@
 from ctypes import *
 from hd_define import *
 from typing import List
+from hdu_matrix import hduMatrix, hduVector3Dd
 
 _lib_hd = CDLL("libHD.so")
 
 class DeviceInitException(Exception):
     "Raised when the device is not initialized properly"
     pass
+
+def _get_doublev(code: int, dtype):
+    data = dtype()
+    _lib_hd.hdGetDoublev.argtypes = [HDenum, POINTER(dtype)]
+    _lib_hd.hdGetDoublev.restype = None
+    _lib_hd.hdGetDoublev(code, data)
+    return data
+
+def _get_integerv(code: int, dtype):
+    data = dtype()
+    _lib_hd.hdGetIntegerv.argtypes = [HDenum, POINTER(dtype)]
+    _lib_hd.hdGetIntegerv.restype = None
+    _lib_hd.hdGetIntegerv(code, data)
+    return data
+
+def _set_doublev(code: int, value, dtype):
+    data = dtype()
+    data.value = value
+    _lib_hd.hdSetDoublev.argtypes = [HDenum, POINTER(HDdouble * 3)]
+    _lib_hd.hdSetDoublev.restype = None
+    _lib_hd.hdSetDoublev(code, data)
+
 
 def init_device(name: str = None) -> int:
     _lib_hd.hdInitDevice.argtypes = [c_char_p]
@@ -20,19 +43,21 @@ def init_device(name: str = None) -> int:
     except DeviceInitException:
         print("Unable to initialize the device. Check the connection!")
 
-def get_integerv(code: int) -> int:
-    a = HDint(0)
-    _lib_hd.hdGetIntegerv.argtypes = [HDenum, POINTER(HDint)]
-    _lib_hd.hdGetIntegerv.restype = None
-    _lib_hd.hdGetIntegerv(code, a)
-    return a.value
+def get_buttons() -> int:
+    return _get_integerv(HD_CURRENT_BUTTONS, HDint).value
 
-def set_doublev(code: int, feedback: List[float]) -> None:
-    f = (HDdouble * 3)()
-    f.value = feedback
-    _lib_hd.hdSetDoublev.argtypes = [HDenum, POINTER(HDdouble)]
-    _lib_hd.hdSetDoublev.restype = None
-    _lib_hd.hdSetDoublev(code, f)
+def get_transform() -> hduMatrix:
+    return _get_doublev(HD_CURRENT_TRANSFORM, hduMatrix)
+
+def get_joints() -> hduVector3Dd:
+    return _get_doublev(HD_CURRENT_JOINT_ANGLES, hduVector3Dd)
+
+def get_gimbals() -> hduVector3Dd:
+    return _get_doublev(HD_CURRENT_GIMBAL_ANGLES, hduVector3Dd)
+
+def set_force(feedback: List[float]) -> None:
+    _set_doublev(HD_FORCE_OUTPUT, feedback, hduVector3Dd)
+    
 
 def close_device(id: int):
     _lib_hd.hdDisableDevice.argtypes = [HHD]
