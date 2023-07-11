@@ -2,24 +2,31 @@ from ctypes import *
 from hd_define import *
 import hd
 import time
+from dataclasses import dataclass, field
 
 _lib_hd = CDLL("libHD.so")
 
+@dataclass
+class DeviceState:
+    button: bool = False
+    position: list = field(default_factory=list)
+    joints: list = field(default_factory=list)
+    gimbals: list = field(default_factory=list)
+
 @CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
-def callback(pUserData):
-    # device_state = pUserData(DeviceDisplayState)
+def state_callback(pUserData):
+    global device_state
     hd.begin_frame(hd.get_current_device())
-    button = hd.get_integerv(HD_CURRENT_BUTTONS)
-    if button == 1:
-        print("Apply force!")
-        feedback = [5, 0, 0]    
-    else:
-        print("Remove force!")
-        feedback = [0, 0, 0]
-    hd.set_doublev(HD_CURRENT_FORCE, feedback)        
+    transform = hd.get_transform()
+    joints = hd.get_joints()
+    gimbals = hd.get_gimbals()
+    device_state.position = [transform[3][0], -transform[3][2], transform[3][1]]
+    device_state.joints = [joints[0], joints[1], joints[2]]
+    device_state.gimbals = [gimbals[0], gimbals[1], gimbals[2]]
+    button = hd.get_buttons()
+    device_state.button = True if button==1 else False 
     hd.end_frame(hd.get_current_device())
     return HD_CALLBACK_CONTINUE
-
 
 class HapticDevice(object):
     def __init__(self, device_name: str = "Default Device"):
@@ -29,19 +36,17 @@ class HapticDevice(object):
         print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
         hd.enable_force()
         hd.start_scheduler()
+        self.callback()
 
     def close(self):
         hd.stop_scheduler()
         hd.close_device(self.id)
-
-    def enable_force(self):
-        _lib_hd.hdEnable.argtypes = [HDenum]
-        _lib_hd.hdEnable.restype = None
-        _lib_hd.hdEnable(HD_FORCE_OUTPUT)
     
     def callback(self):
+        global device_state
         pUserData = c_void_p()
-        _lib_hd.hdScheduleSynchronous(callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
+        device_state = DeviceState()
+        _lib_hd.hdScheduleAsynchronous(state_callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
 
     @staticmethod
     def __vendor__() -> str:
@@ -54,5 +59,13 @@ class HapticDevice(object):
 
 if __name__ == "__main__":
     device = HapticDevice()
-    device.callback()
+    pre_button = device_state.button
+    for i in range(10000):
+        if pre_button != device_state.button:
+            if device_state.button:
+                print("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠛⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠋⠉⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⠟⠋⣠⣿⣦⣄⣀⣀⣀⡀⠀⠀⠀⠀⠙⣷⠙⠻⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡿⠁⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣤⣤⣴⣾⣿⣿⣦⠈⢿⣿⣿⣿⣿\n⣿⣿⣿⡟⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡀⢻⣿⣿⣿\n⣿⣿⣿⢁⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡈⣿⣿⣿\n⣿⣿⡇⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢸⣿⣿\n⣿⣿⡇⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢸⣿⣿\n⣿⣿⡇⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢸⣿⣿\n⣿⣿⣿⡈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠿⠥⣿⣿⣿\n⣿⣿⣿⣿⠋⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠁⠤⠤⠤⠄⢀⠀⣿⣿\n⣿⣿⣿⠁⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢰⣶⣶⣶⡆⠀⣿⡄⢸⣿\n⣿⣿⡇⠀⠀⠀⠀⣿⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢸⣿⣿⣿⡿⠀⣿⠀⣼⣿\n⣿⣿⣿⣤⣀⣠⣾⣿⣿⣶⣦⣬⣉⣉⣉⣉⣉⣉⣽⣇⣈⣉⣉⣉⣁⣀⣤⣶⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿")
+            else:
+                print("⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣤⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣶⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⣠⣴⠟⠀⠙⠻⠿⠿⠿⢿⣿⣿⣿⣿⣦⠈⣦⣄⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⢀⣾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠋⠁⠀⠀⠙⣷⡀⠀⠀⠀⠀\n⠀⠀⠀⢠⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⡄⠀⠀⠀\n⠀⠀⠀⡾⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠀⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⠀⢷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣚⠀⠀⠀\n⠀⠀⠀⠀⣴⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣾⣛⣛⣛⣻⡿⣿⠀⠀\n⠀⠀⠀⣾⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡏⠉⠉⠉⢹⣿⠀⢻⡇⠀\n⠀⠀⢸⣿⣿⣿⣿⠀⣦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⢀⣿⠀⣿⠃⠀\n⠀⠀⠀⠛⠿⠟⠁⠀⠀⠉⠙⠓⠶⠶⠶⠶⠶⠶⠂⠸⠷⠶⠶⠶⠾⠿⠛⠉⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀")
+        pre_button = device_state.button
+        time.sleep(0.001)       
     device.close()
