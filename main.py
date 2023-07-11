@@ -1,55 +1,58 @@
 from ctypes import *
-from hd import *
+from hd_define import *
+import hd
+import time
+
+_lib_hd = CDLL("libHD.so")
+
+@CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
+def callback(pUserData):
+    # device_state = pUserData(DeviceDisplayState)
+    hd.begin_frame(hd.get_current_device())
+    button = hd.get_integerv(HD_CURRENT_BUTTONS)
+    if button == 1:
+        print("Apply force!")
+        feedback = [5, 0, 0]    
+    else:
+        print("Remove force!")
+        feedback = [0, 0, 0]
+    hd.set_doublev(HD_CURRENT_FORCE, feedback)        
+    hd.end_frame(hd.get_current_device())
+    return HD_CALLBACK_CONTINUE
+
 
 class HapticDevice(object):
     def __init__(self, device_name: str = "Default Device"):
 
         print("Initializing haptic device with name {}".format(device_name))
-        self.lib_hd = CDLL("/usr/lib/libHD.so")
-        self.lib_hd.hdInitDevice.argtypes = [c_char_p]
-        self.lib_hd.hdInitDevice.restype = HHD
-        self.id = self.lib_hd.hdInitDevice(HD_DEFAULT_DEVICE)
-        print("Started {}/{} device".format(self.vendor(), self.model()))
-    
-    def get_serial_number(self):
-        self.lib_hd.hdGetCurrentDevice.restype = HHD
-        device = self.lib_hd.hdGetCurrentDevice()
-        print(device)
+        self.id = hd.init_device(None)
+        print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
+        hd.enable_force()
+        hd.start_scheduler()
 
-    def begin_frame(self):  
-        self.lib_hd.hdBeginFrame.argtypes = [HHD]
-        self.lib_hd.hdBeginFrame.restype = None
-        self.lib_hd.hdBeginFrame(self.id)
-    
-    def end_frame(self):
-        self.lib_hd.hdEndFrame.argtypes = [HHD]
-        self.lib_hd.hdEndFrame.restype = None
-        self.lib_hd.hdEndFrame(self.id)
-    
-    def scheduler(self):
-        self.begin_frame()
+    def close(self):
+        hd.stop_scheduler()
+        hd.close_device(self.id)
 
-        self.end_frame()
+    def enable_force(self):
+        _lib_hd.hdEnable.argtypes = [HDenum]
+        _lib_hd.hdEnable.restype = None
+        _lib_hd.hdEnable(HD_FORCE_OUTPUT)
     
-    def vendor(self) -> str:
-        self.lib_hd.hdGetString.argtypes = [HDenum]
-        self.lib_hd.hdGetString.restype = HDstring
-        return self.lib_hd.hdGetString(HD_DEVICE_VENDOR).decode()
+    def callback(self):
+        pUserData = c_void_p()
+        _lib_hd.hdScheduleSynchronous(callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
+
+    @staticmethod
+    def __vendor__() -> str:
+        return hd.get_vendor()
     
-    def model(self) -> str:
-        self.lib_hd.hdGetString.argtypes = [HDenum]
-        self.lib_hd.hdGetString.restype = HDstring
-        return  self.lib_hd.hdGetString(HD_DEVICE_MODEL_TYPE).decode()
-    
-    def getbuttons(self):
-        buttonState = HDint(1)
-        # self.lib_hd.hdGetIntegerv.argtypes = [HDenum, POINTER(HDint)]
-        self.lib_hd.hdGetIntegerv.restype = None
-        self.begin_frame()
-        self.lib_hd.hdGetIntegerv(HD_CURRENT_BUTTONS, byref(buttonState))
-        self.end_frame()
-        print(buttonState)
+    @staticmethod
+    def __model__() -> str:
+        return hd.get_model()
+        
 
 if __name__ == "__main__":
     device = HapticDevice()
-    device.getbuttons()
+    device.callback()
+    device.close()
