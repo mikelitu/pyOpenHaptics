@@ -1,2 +1,76 @@
+# this workflow tests sdist builds and also doubles as a way to test that
+# pyHD compiles on all ubuntu LTS versions
+# the main difference between this and the manylinux builds is that this runs
+# directly under ubuntu and uses apt installed dependencies, while the
+# manylinux workflow runs with centos docker and self-compiled dependencies
+# IMPORTANT: binaries are not to be uploaded from this workflow!
 
 name: Ubuntu sdist
+
+# Run CI only when a release is created, on changes to main branch, or any PR 
+# to main. Do not run CI on any other branch. Also, skip any non-source changes 
+# from running on CI
+on:
+    release:
+        types: [created]
+    push:
+        branches: main
+        paths-ignore:
+            - 'examples/**'
+            - '.gitignore'
+            - '*.md'
+            - '.github/workflows/*.yml'
+            # re-include current file to not be excluded
+            - '!.github/workflows/build-ubuntu-sdist.yml'
+
+    pull_request:
+        branches:
+            - main
+            - 'v**'
+        paths-ignore:
+            - 'examples/**'
+            - '.gitignore'
+            - '*.md'
+            - '.github/workflows/*.yml'
+            # re-include current file to not be excluded
+            - '!.github/workflows/build-ubuntu-sdist.yml'
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-20.04, ubuntu22.04]
+                python-version: [ "3.10"]
+        
+        steps:
+        - uses: actions/checkout@v0.0.1
+
+        - name: Setup Python
+          uses: actions/setup-python@v3
+          with:
+            python-version: ${{ matrix.python-version }}
+            architecture: x64
+
+        - name: Install deps
+          run: |
+            sudo apt-get update --fix-missing
+            sudo apt-get upgrade
+            sudo apt-get install libncurses5-dev qt5-default freeglut3 build-essential
+        
+        - name: Make sdist and install it
+          env:
+            PIP_CONFIG_FILE: "buildconfig/pip_config.ini"
+          run: |
+            python3 setup.py docs
+            python3 setup.py sdist
+            python3 -m pip install dist/pyHD*.tar.gz -vv
+        
+        - name: Upload sdist
+          if : matrix.os == 'ubuntu-20.04' && matrix.python-version == '3.10'
+          uses: actions/upload-artifact@v3
+          with:
+            name: pyHD-sdist
+            path: dist/*.tar.gz
+        
