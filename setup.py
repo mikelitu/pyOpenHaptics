@@ -11,7 +11,7 @@ setup(
     author_email="mikelitubiomed@gmail.com",
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    packages=(),
+    packages=["pyHD"],
     install_requires=[],
     keywords=["haptics", "3dsystems"],
     classifiers=[

@@ -1,5 +1,10 @@
 README.md
 setup.py
+pyHD/__init__.py
+pyHD/exceptions.py
+pyHD/hd.py
+pyHD/hd_define.py
+pyHD/hdu_matrix.py
 pyHD.egg-info/PKG-INFO
 pyHD.egg-info/SOURCES.txt
 pyHD.egg-info/dependency_links.txt

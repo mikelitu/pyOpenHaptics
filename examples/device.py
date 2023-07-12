@@ -1,6 +1,6 @@
 from ctypes import *
-from src.hd_define import *
-import src.hd as hd
+from pyHD.hd_define import *
+import pyHD.hd as hd
 import time
 from dataclasses import dataclass, field
 
