@@ -1,17 +1,17 @@
 from setuptools import setup, find_packages
 
-VERSION="0.0.1"
+VERSION="0.0.2"
 DESCRIPTION="Python binding for OpenHaptics"
 LONG_DESCRIPTION="Basic functions to mimic the OpenHaptics library on C++. Written into a more Python friendly language"
 
 setup(
-    name="pyHD",
+    name="pyOpenHaptics",
     version=VERSION,
     author="Mikel De Iturrate Reyzabal",
     author_email="mikelitubiomed@gmail.com",
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    packages=["pyHD"],
+    packages=find_packages(),
     install_requires=[],
     keywords=["haptics", "3dsystems"],
     classifiers=[
