@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION="0.0.2"
+VERSION="0.0.3"
 DESCRIPTION="Python binding for OpenHaptics"
 LONG_DESCRIPTION="Basic functions to mimic the OpenHaptics library on C++. Written into a more Python friendly language"
 
