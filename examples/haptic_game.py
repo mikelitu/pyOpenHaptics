@@ -1,17 +1,13 @@
 #!/usr/bin/env python
-""" pygame.examples.moveit
+""" pyOpenHaptics.example.haptic_game.py
 
-This is the full and final example from the Pygame Tutorial,
-"How Do I Make It Move". It creates 10 objects and animates
-them on the screen.
+This example contains a small demo of a haptic game of a rectangle trapped in a confined space.
+The closer the red rectangle gets to the ends the more force will you feel in the device.
+This example is to show the capabilities of developing such applications in pure Python language
+using the pyOpenHaptics library.
 
-It also has a separate player character that can be controlled with arrow keys.
-
-Note it's a bit scant on error checking, but it's easy to read. :]
-Fortunately, this is python, and we needn't wrestle with a pile of
-error codes.
 """
-import os
+
 import pygame
 from ctypes import *
 from src.hd_define import *
@@ -53,7 +49,7 @@ class HapticDevice(object):
     def __init__(self, device_name: str = "Default Device"):
 
         print("Initializing haptic device with name {}".format(device_name))
-        self.id = hd.init_device(None)
+        self.id = hd.init_device(device_name)
         print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
         hd.enable_force()
         hd.start_scheduler()
