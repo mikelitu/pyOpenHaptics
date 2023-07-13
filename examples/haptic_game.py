@@ -10,12 +10,11 @@ using the pyOpenHaptics library.
 
 import pygame
 from ctypes import *
-from src.hd_define import *
-import src.hd as hd
+from pyOpenHaptics.hd_device import HapticDevice
+import pyOpenHaptics.hd as hd
 import time
 from dataclasses import dataclass, field
-
-_lib_hd = CDLL("libHD.so")
+from pyOpenHaptics.hd_callback import *
 
 @dataclass
 class DeviceState:
@@ -25,10 +24,9 @@ class DeviceState:
     gimbals: list = field(default_factory=list)
     force: list = field(default_factory=list)
 
-@CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
-def state_callback(pUserData):
+@hd_callback
+def state_callback():
     global device_state
-    hd.begin_frame(hd.get_current_device())
     transform = hd.get_transform()
     joints = hd.get_joints()
     gimbals = hd.get_gimbals()
@@ -37,55 +35,21 @@ def state_callback(pUserData):
     device_state.gimbals = [gimbals[0], gimbals[1], gimbals[2]]
     hd.set_force(device_state.force)
     button = hd.get_buttons()
-    device_state.button = True if button==1 else False 
-    hd.end_frame(hd.get_current_device())
-    # print(hd.get_error())
-    if(hd.get_error()):
-        return HD_CALLBACK_DONE
-    
-    return HD_CALLBACK_CONTINUE
-
-class HapticDevice(object):
-    def __init__(self, device_name: str = "Default Device"):
-
-        print("Initializing haptic device with name {}".format(device_name))
-        self.id = hd.init_device(device_name)
-        print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
-        hd.enable_force()
-        hd.start_scheduler()
-        if hd.get_error():
-            SystemError()
-        self.callback()
-
-    def close(self):
-        hd.stop_scheduler()
-        hd.close_device(self.id)
-    
-    def callback(self):
-        global device_state
-        pUserData = c_void_p()
-        device_state = DeviceState(force=[0, 0, 0])
-        _lib_hd.hdScheduleAsynchronous(state_callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
-
-    @staticmethod
-    def __vendor__() -> str:
-        return hd.get_vendor()
-    
-    @staticmethod
-    def __model__() -> str:
-        return hd.get_model()
+    device_state.button = True if button==1 else False
 
 def wall_feedback(big: pygame.Rect, small: pygame.Rect):
+    device_state.force = [0, 0, 0]
+
     if small.y <= 80:
         device_state.force[1] = -0.05 * (80 - small.y)
     elif small.y + 60 >= 1000:
         device_state.force[1] = 0.05 * (small.y + 60 - 1000)
-    elif small.x <= 80:
+    
+    if small.x <= 80:
         device_state.force[0] = 0.05 * (80 - small.x)
     elif small.x + 60 >= 1800:
         device_state.force[0] = -0.0275 * (small.x + 60 - 1800)
-    else:
-        device_state.force = [0, 0, 0]
+        
 
 def main():
     pygame.init()
@@ -125,7 +89,8 @@ def main():
         pre_dev_x, pre_dev_y = dev_x, dev_y
 
 if __name__ == "__main__":
-    device = HapticDevice()
+    device_state = DeviceState()
+    device = HapticDevice(callback=state_callback)
     time.sleep(0.2)
     main()
     device.close()

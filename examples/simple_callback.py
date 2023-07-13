@@ -1,72 +1,30 @@
-from ctypes import *
-from src.hd_define import *
-import src.hd as hd
-import time
-from dataclasses import dataclass, field
+"""pyOpenHaptics.examples.haptic_device.py
+Simple example on how to write your custom haptic device class and callback function for any type.
+In this case we are just getting the value of the button on the Touch X to change an ASCII drawing.
+It only updates the drawing if the state of the button changes.
+"""
 
-_lib_hd = CDLL("libHD.so")
+from ctypes import *
+from pyOpenHaptics.hd_device import HapticDevice
+import pyOpenHaptics.hd as hd
+import time
+from dataclasses import dataclass
+from pyOpenHaptics.hd_callback import *
 
 @dataclass
 class DeviceState:
     button: bool = False
-    position: list = field(default_factory=list)
-    joints: list = field(default_factory=list)
-    gimbals: list = field(default_factory=list)
-    force: list = field(default_factory=list)
 
-@CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
-def state_callback(pUserData):
+@hd_callback
+def button_callback():
     global device_state
-    hd.begin_frame(hd.get_current_device())
-    transform = hd.get_transform()
-    joints = hd.get_joints()
-    gimbals = hd.get_gimbals()
-    device_state.position = [transform[3][0], -transform[3][2], transform[3][1]]
-    device_state.joints = [joints[0], joints[1], joints[2]]
-    device_state.gimbals = [gimbals[0], gimbals[1], gimbals[2]]
-    # hd.set_force([1.0, 0.0, 0.0])
     button = hd.get_buttons()
     device_state.button = True if button==1 else False 
-    hd.end_frame(hd.get_current_device())
-    # print(hd.get_error())
-    if(hd.get_error()):
-        return HD_CALLBACK_DONE
-    
-    return HD_CALLBACK_CONTINUE
-
-class HapticDevice(object):
-    def __init__(self, device_name: str = "Default Device"):
-
-        print("Initializing haptic device with name {}".format(device_name))
-        self.id = hd.init_device(device_name)
-        print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
-        hd.enable_force()
-        hd.start_scheduler()
-        if hd.get_error():
-            SystemError()
-        self.callback()
-
-    def close(self):
-        hd.stop_scheduler()
-        hd.close_device(self.id)
-    
-    def callback(self):
-        global device_state
-        pUserData = c_void_p()
-        device_state = DeviceState()
-        _lib_hd.hdScheduleAsynchronous(state_callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
-
-    @staticmethod
-    def __vendor__() -> str:
-        return hd.get_vendor()
-    
-    @staticmethod
-    def __model__() -> str:
-        return hd.get_model()
         
 
 if __name__ == "__main__":
-    device = HapticDevice()
+    device_state = DeviceState()
+    device = HapticDevice(callback = button_callback, device_name = "Default Device", scheduler_type = "async")
     pre_button = device_state.button
     for i in range(10000):
         if pre_button != device_state.button:
@@ -75,6 +33,5 @@ if __name__ == "__main__":
             else:
                 print("⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣤⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣶⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⣠⣴⠟⠀⠙⠻⠿⠿⠿⢿⣿⣿⣿⣿⣦⠈⣦⣄⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⢀⣾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠋⠁⠀⠀⠙⣷⡀⠀⠀⠀⠀\n⠀⠀⠀⢠⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⡄⠀⠀⠀\n⠀⠀⠀⡾⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠀⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀\n⠀⠀⠀⢷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣚⠀⠀⠀\n⠀⠀⠀⠀⣴⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣾⣛⣛⣛⣻⡿⣿⠀⠀\n⠀⠀⠀⣾⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡏⠉⠉⠉⢹⣿⠀⢻⡇⠀\n⠀⠀⢸⣿⣿⣿⣿⠀⣦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⢀⣿⠀⣿⠃⠀\n⠀⠀⠀⠛⠿⠟⠁⠀⠀⠉⠙⠓⠶⠶⠶⠶⠶⠶⠂⠸⠷⠶⠶⠶⠾⠿⠛⠉⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀")
         pre_button = device_state.button
-        # print(device_state.position)
         time.sleep(0.001)       
     device.close()
