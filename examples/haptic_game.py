@@ -80,16 +80,14 @@ class HapticDevice(object):
         return hd.get_model()
 
 def wall_feedback(big: pygame.Rect, small: pygame.Rect):
-    if small.y < 80:
-        device_state.force[1] = -(big.y/small.y) * 2.5 + 2.5 * (big.y/80)
-    elif small.y + 60 > 1000:
-        device_state.force[1] = ((small.y + 60)/(big.height + 30)) * 2.5 - 2.5 * (1060/(big.height + 30))
-    elif small.x < 80:
-        device_state.force[0] = (big.x/small.x) * 2.5 - 2.5 * (big.x/80)
-    elif small.x + small.width > 1800:
-        print("Hello!")
-        print(-((small.x + small.width)/(big.width)) * 2.5)
-        device_state.force[0] = -((small.x + small.width)/(big.width + big.x)) * 2.5 + 2.5 * (1800/(big.width + 30))
+    if small.y <= 80:
+        device_state.force[1] = -0.05 * (80 - small.y)
+    elif small.y + 60 >= 1000:
+        device_state.force[1] = 0.05 * (small.y + 60 - 1000)
+    elif small.x <= 80:
+        device_state.force[0] = 0.05 * (80 - small.x)
+    elif small.x + 60 >= 1800:
+        device_state.force[0] = -0.0275 * (small.x + 60 - 1800)
     else:
         device_state.force = [0, 0, 0]
 
