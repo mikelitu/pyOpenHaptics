@@ -38,7 +38,7 @@ class HapticDevice(object):
     def __init__(self, device_name: str = "Default Device"):
 
         print("Initializing haptic device with name {}".format(device_name))
-        self.id = hd.init_device(None)
+        self.id = hd.init_device("Default Device")
         print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
         hd.enable_force()
         hd.start_scheduler()
