@@ -43,11 +43,11 @@ def _get_error() -> HDErrorInfo:
     return _lib_hd.hdGetError()
 
 
-def init_device(name: str = None) -> int:
+def init_device(name: str = "Default Device") -> int:
     _lib_hd.hdInitDevice.argtypes = [c_char_p]
     _lib_hd.hdInitDevice.restype = HHD
     try:
-        id = _lib_hd.hdInitDevice(HD_DEFAULT_DEVICE)
+        id = _lib_hd.hdInitDevice(name.encode())
         if id == HD_BAD_HANDLE:
             raise DeviceInitException
         else:
