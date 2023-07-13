@@ -9,12 +9,11 @@ using the pyOpenHaptics library.
 """
 
 import pygame
-from ctypes import *
 from pyOpenHaptics.hd_device import HapticDevice
 import pyOpenHaptics.hd as hd
 import time
 from dataclasses import dataclass, field
-from pyOpenHaptics.hd_callback import *
+from pyOpenHaptics.hd_callback import hd_callback
 
 @dataclass
 class DeviceState:
