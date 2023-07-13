@@ -14,6 +14,7 @@ from src.hd_define import *
 import src.hd as hd
 import time
 from dataclasses import dataclass, field
+from src.hd_callback import *
 
 _lib_hd = CDLL("libHD.so")
 
@@ -25,8 +26,8 @@ class DeviceState:
     gimbals: list = field(default_factory=list)
     force: list = field(default_factory=list)
 
-@CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
-def state_callback(pUserData):
+@hd_callback
+def state_callback():
     global device_state
     hd.begin_frame(hd.get_current_device())
     transform = hd.get_transform()
@@ -39,14 +40,9 @@ def state_callback(pUserData):
     button = hd.get_buttons()
     device_state.button = True if button==1 else False 
     hd.end_frame(hd.get_current_device())
-    # print(hd.get_error())
-    if(hd.get_error()):
-        return HD_CALLBACK_DONE
-    
-    return HD_CALLBACK_CONTINUE
 
 class HapticDevice(object):
-    def __init__(self, device_name: str = "Default Device"):
+    def __init__(self, device_name: str = "Default Device", scheduler_type: str = "async"):
 
         print("Initializing haptic device with name {}".format(device_name))
         self.id = hd.init_device(device_name)
@@ -55,17 +51,19 @@ class HapticDevice(object):
         hd.start_scheduler()
         if hd.get_error():
             SystemError()
-        self.callback()
+        self.scheduler(scheduler_type)
 
     def close(self):
         hd.stop_scheduler()
         hd.close_device(self.id)
     
-    def callback(self):
+    def scheduler(self, scheduler_type):
         global device_state
-        pUserData = c_void_p()
         device_state = DeviceState(force=[0, 0, 0])
-        _lib_hd.hdScheduleAsynchronous(state_callback, byref(pUserData), HD_MAX_SCHEDULER_PRIORITY)
+        if scheduler_type == "async":
+            hdAsyncSheduler(state_callback)
+        else:
+            hdSyncSheduler(state_callback)
 
     @staticmethod
     def __vendor__() -> str:
