@@ -89,7 +89,7 @@ def main():
 
 if __name__ == "__main__":
     device_state = DeviceState()
-    device = HapticDevice(callback=state_callback)
+    device = HapticDevice(device_name="Default Device", callback=state_callback)
     time.sleep(0.2)
     main()
     device.close()
