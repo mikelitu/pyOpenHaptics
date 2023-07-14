@@ -4,12 +4,11 @@ In this case we are just getting the value of the button on the Touch X to chang
 It only updates the drawing if the state of the button changes.
 """
 
-from ctypes import *
 from pyOpenHaptics.hd_device import HapticDevice
 import pyOpenHaptics.hd as hd
 import time
 from dataclasses import dataclass
-from pyOpenHaptics.hd_callback import *
+from pyOpenHaptics.hd_callback import hd_callback
 
 @dataclass
 class DeviceState:
