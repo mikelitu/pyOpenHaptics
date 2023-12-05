@@ -2,8 +2,12 @@ from ctypes import *
 from .hd_define import *
 import functools
 from .hd import *
+from sys import platform
 
-_lib_hd = CDLL("libHD.so")
+if platform == "linux" or platform == "linux2":
+    _lib_hd = CDLL("libHD.so")
+elif platform == "win32":
+    _lib_hd = CDLL("HD.dll")
 
 def hd_callback(input_function):
     @functools.wraps(input_function)
