@@ -63,9 +63,10 @@ jobs:
           env:
             PIP_CONFIG_FILE: "buildconfig/pip_config.ini"
           run: |
+            python3 -m pip install --upgrade pip
             python3 -m pip install --upgrade build
             python3 -m build
-            python3 -m pip install dist/pyOpenHaptics*.tar.gz -vv
+            pip install dist/pyOpenHaptics*.tar.gz -vv
         
         - name: Upload sdist
           if : matrix.os == 'ubuntu-20.04' && matrix.python-version == '3.10'
