@@ -63,7 +63,8 @@ jobs:
           env:
             PIP_CONFIG_FILE: "buildconfig/pip_config.ini"
           run: |
-            python3 setup.py sdist
+            python3 -m pip install --upgrade build
+            python3 -m build
             python3 -m pip install dist/pyOpenHaptics*.tar.gz -vv
         
         - name: Upload sdist
