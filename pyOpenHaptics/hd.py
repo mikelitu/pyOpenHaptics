@@ -90,6 +90,10 @@ def get_current_device() -> HHD:
     _lib_hd.hdGetCurrentDevice.restype = HHD
     return _lib_hd.hdGetCurrentDevice()
 
+def make_current_device(id: int) -> None:
+    _lib_hd.hdMakeCurrentDevice.argtypes = [HHD]
+    _lib_hd.hdMakeCurrentDevice(id)
+
 def start_scheduler() -> None:
     _lib_hd.hdStartScheduler()
 

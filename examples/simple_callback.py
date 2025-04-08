@@ -12,11 +12,17 @@ from pyOpenHaptics.hd_callback import hd_callback
 
 @dataclass
 class DeviceState:
+    """Class to store the state of the device"""
+    # Device ID
+    device_id: int = 0
+    # Button state
     button: bool = False
 
 @hd_callback
 def button_callback():
     global device_state
+    # Set the device to the current device
+    hd.make_current_device(device_state.device_id)
     button = hd.get_buttons()
     device_state.button = True if button==1 else False 
         

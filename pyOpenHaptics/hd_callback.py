@@ -13,6 +13,10 @@ def hd_callback(input_function):
     @functools.wraps(input_function)
     @CFUNCTYPE(HDCallbackCode, POINTER(c_void_p))
     def _callback(pUserData):
+        """Callback function for the haptic device.
+        This function is called by the haptic device when it is ready to process input.
+        It calls the input_function passed as an argument and checks for errors.
+        """
         begin_frame(get_current_device())
         input_function()
         end_frame(get_current_device())
