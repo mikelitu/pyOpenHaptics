@@ -1,5 +1,5 @@
 from .hd import *
-from.hd_callback import *
+from .hd_callback import *
 from .hd_define import *
 
 class HapticDevice(object):
@@ -7,16 +7,20 @@ class HapticDevice(object):
 
         print("Initializing haptic device with name {}".format(device_name))
         current_id = get_current_device()
-        
+
         self.id = init_device(device_name)
         if self.id == HD_BAD_HANDLE:
             print("Unable to initialize the device. Check the connection!")
             return
-        
-        if current_id != self.id:
-            make_current_device(self.id)
+
+        # If the current device is the same as the one we just initialized,
+        # it means the device was already initialized earlier — bail out.
+        if current_id == self.id:
             print("Device {} is already initialized.".format(device_name))
             return
+
+        # Otherwise, make the new device the current one and continue initialization.
+        make_current_device(self.id)
         
         print("Intialized device! {}/{}".format(self.__vendor__(), self.__model__()))
         enable_force()

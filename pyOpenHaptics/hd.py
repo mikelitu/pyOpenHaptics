@@ -61,6 +61,9 @@ def get_buttons() -> int:
 def get_transform() -> hduMatrix:
     return _get_doublev(HD_CURRENT_TRANSFORM, hduMatrix)
 
+def get_velocity() -> hduVector3Dd:
+    return _get_doublev(HD_CURRENT_VELOCITY, hduVector3Dd)
+
 def get_joints() -> hduVector3Dd:
     return _get_doublev(HD_CURRENT_JOINT_ANGLES, hduVector3Dd)
 
