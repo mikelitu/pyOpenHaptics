@@ -46,14 +46,16 @@ def _get_error() -> HDErrorInfo:
 def init_device(name: str = "Default Device") -> int:
     _lib_hd.hdInitDevice.argtypes = [c_char_p]
     _lib_hd.hdInitDevice.restype = HHD
-    try:
-        id = _lib_hd.hdInitDevice(name.encode())
-        if id == HD_BAD_HANDLE:
-            raise DeviceInitException
-        else:
-            return id
-    except DeviceInitException:
-        print("Unable to initialize the device. Check the connection!")
+    id = _lib_hd.hdInitDevice(name.encode())
+    error = _get_error()
+    if id == HD_INVALID_HANDLE or error.errorCode != HD_SUCCESS:
+        if id != HD_INVALID_HANDLE:
+            close_device(id)
+        raise DeviceInitException(
+            f"Unable to initialize {name!r}: HD error 0x{error.errorCode:04x}, "
+            f"internal error {error.internalErrorCode}."
+        )
+    return id
 
 def get_buttons() -> int:
     return _get_integerv(HD_CURRENT_BUTTONS, HDint).value
@@ -72,14 +74,11 @@ def get_gimbals() -> hduVector3Dd:
 
 def get_error() -> bool:
     error = _get_error().errorCode
-    try:
-        if error == HD_SUCCESS:
-            return False
-        else:
-            raise exception_dict[error]
-    except exception_dict[error] as e:
-        print("{}: Error during the main scheduler.".format(type(e).__name__))
-        return True
+    if error == HD_SUCCESS:
+        return False
+    error_type = exception_dict.get(error, SystemError)
+    print(f"{error_type.__name__}: HD error 0x{error:04x} during the main scheduler.")
+    return True
 
 def set_force(feedback: List[float]) -> None:
     _set_doublev(HD_CURRENT_FORCE, feedback, hduVector3Dd)

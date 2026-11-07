@@ -21,8 +21,7 @@ class DeviceState:
 @hd_callback
 def button_callback():
     global device_state
-    # Set the device to the current device
-    hd.make_current_device(device_state.device_id)
+    # @hd_callback selects this device before opening its frame.
     button = hd.get_buttons()
     device_state.button = True if button==1 else False 
         

@@ -63,3 +63,15 @@ if __name__ == "__main__":
 ```
 
 You can find more complex examples [here](examples)
+
+### Using two devices
+
+Run the simple example with the two distinct names configured in Touch Setup.
+Note that the example requires `matplotlib`.
+
+```shell
+python3 -m examples.two_devices "Left Device" "Right Device"
+```
+
+With `@hd_callback`, device selection and frame boundaries are handled by the library.
+Do not call `begin_frame`/`end_frame` or switch devices inside the callback.
